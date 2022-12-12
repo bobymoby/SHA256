@@ -1,8 +1,13 @@
 #include <iostream>
 #include <string>
 #include <iomanip>
+#include <fstream>
+#include <sstream>
+#include <windows.h>
 
 using namespace std;
+
+const string banner = "   _____ _    _          ___  _____   __  \n  / ____| |  | |   /\\   |__ \\| ____| / /  \n | (___ | |__| |  /  \\     ) | |__  / /_  \n  \\___ \\|  __  | / /\\ \\   / /|___ \\| '_ \\ \n  ____) | |  | |/ ____ \\ / /_ ___) | (_) |\n |_____/|_|  |_/_/    \\_\\____|____/ \\___/";
 
 // First 32 bits of the fractional parts of the cube roots of the first 64 primes 2..311
 unsigned int K[64] = {
@@ -119,27 +124,28 @@ void Update(string& message, unsigned int Hash[8])
         {
             Words[index] = 0;
             //Words[index] will become |aaaaaaaabbbbbbbbccccccccdddddddd|
-            //Where a,b,c,d are the bytes of chunk[index], chunk[index + 1], chunk[index + 2], chunk[index + 3]
+            //Where a,b,c,d are the bits of chunk[index], chunk[index + 1], chunk[index + 2], chunk[index + 3]
             //Where chunk is the current 64 byte chunk of the message
             for (int j = 0; j < 4; j++) {
                 Words[index] = (Words[index] << 8) + (uint8_t)message[chunk * 64 + index * 4 + j];
-                //By casting to uint8_t(unsigned char), we ensure that the value is 1 unsigned byte
+                //By casting to uint8_t(unsigned char), we ensure that the value is exactly 1 unsigned byte
             }
         }
         Transform(Words, Hash);
     }
 }
 
-void PrintHash(unsigned int Hash[8])
+string Digest(unsigned int Hash[8])
 {
+    stringstream ss(stringstream::in | stringstream::out);
     for (int i = 0; i < 8; i++)
     {
-        cout << setfill('0') << setw(8) << hex << (Hash[i]);
+        ss << setfill('0') << setw(8) << hex << (Hash[i]);
     }
-    cout << endl;
+    return ss.str();
 }
 
-void SHA256(string input)
+string SHA256(string input)
 {
     //The initial hash values are the first 32 bits of the fractional parts of the square roots of the first 8 primes
     unsigned int Hash[8] = { 0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19 };
@@ -147,14 +153,26 @@ void SHA256(string input)
     Pad(input);
     Update(input, Hash);
 
-    PrintHash(Hash);
+    return Digest(Hash);
+}
+
+string ReadFile(string src)
+{
+    std::ifstream file(src);
+    std::string msg((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    file.close();
+    return msg;
+}
+
+void WriteFile(string dest, string msg)
+{
+    std::ofstream file(dest);
+    file << msg;
+    file.close();
 }
 
 int main()
 {
-    string in;
-    getline(cin, in);
-
-    SHA256(in);
+    cout << banner << endl;
     return 0;
 }
