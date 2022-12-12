@@ -7,41 +7,46 @@ SHA256::SHA256(std::string message)
     Update(message);
 }
 
-unsigned int SHA256::RightRotate(unsigned int word, unsigned int times)
+uint32_t SHA256::RightRotate(uint32_t word, uint32_t times)
 {
     return (word >> times) | (word << (32 - times));
 }
 
-unsigned int SHA256::Sigma0(unsigned int word)
+uint32_t SHA256::Sigma0(uint32_t word)
 {
     return RightRotate(word, 7) ^ RightRotate(word, 18) ^ (word >> 3);
 }
 
-unsigned int SHA256::Sigma1(unsigned int word)
+uint32_t SHA256::Sigma1(uint32_t word)
 {
     return RightRotate(word, 17) ^ RightRotate(word, 19) ^ (word >> 10);
 }
 
-unsigned int SHA256::CapitalSigma0(unsigned int hash)
+uint32_t SHA256::CapitalSigma0(uint32_t hash)
 {
     return RightRotate(hash, 2) ^ RightRotate(hash, 13) ^ RightRotate(hash, 22);
 }
 
-unsigned int SHA256::CapitalSigma1(unsigned int hash)
+uint32_t SHA256::CapitalSigma1(uint32_t hash)
 {
     return RightRotate(hash, 6) ^ RightRotate(hash, 11) ^ RightRotate(hash, 25);
 }
 
-unsigned int SHA256::Choice(unsigned int hash1, unsigned int hash2, unsigned int hash3)
+uint32_t SHA256::Choice(uint32_t hash1, uint32_t hash2, uint32_t hash3)
 {
     return (hash1 & hash2) ^ ((~hash1) & hash3);
 }
 
-unsigned int SHA256::Majority(unsigned int hash1, unsigned int hash2, unsigned int hash3)
+uint32_t SHA256::Majority(uint32_t hash1, uint32_t hash2, uint32_t hash3)
 {
     return (hash1 & hash2) ^ (hash1 & hash3) ^ (hash2 & hash3);
 }
 
+//Add a single 1 bit to the end of the message and then
+//0 bits until (the message length) % 64 = 56
+//Then add the length of the message as a 8 byte big endian integer(with leading zeros if necessary)
+
+//uint8_t(unsigned char) is used because it is the only type that is guaranteed to be 1 byte
 void SHA256::Pad(std::string& message) {
     unsigned long long length = message.length() * 8;
     message += (uint8_t)128; //10000000 in binary
@@ -55,7 +60,8 @@ void SHA256::Pad(std::string& message) {
     message += bigEndianLength;
 }
 
-void SHA256::Transform(unsigned int Words[64])
+//Compress the chunk of 64 bytes and update the hash values with the compressed chunk
+void SHA256::Transform(uint32_t Words[64])
 {
     //Transform the message W[0..15] into 64 words using the SHA256 algorithm
     for (int index = 16; index < 64; index++)
@@ -63,20 +69,20 @@ void SHA256::Transform(unsigned int Words[64])
         Words[index] = Words[index - 16] + Sigma0(Words[index - 15]) + Words[index - 7] + Sigma1(Words[index - 2]);
     }
     //Working variables
-    unsigned int a = this->Hash[0];
-    unsigned int b = Hash[1];
-    unsigned int c = Hash[2];
-    unsigned int d = Hash[3];
-    unsigned int e = Hash[4];
-    unsigned int f = Hash[5];
-    unsigned int g = Hash[6];
-    unsigned int h = Hash[7];
+    uint32_t a = Hash[0];
+    uint32_t b = Hash[1];
+    uint32_t c = Hash[2];
+    uint32_t d = Hash[3];
+    uint32_t e = Hash[4];
+    uint32_t f = Hash[5];
+    uint32_t g = Hash[6];
+    uint32_t h = Hash[7];
 
     //Compression function main loop
     for (int i = 0; i < 64; i++)
     {
-        unsigned int temp1 = h + CapitalSigma1(e) + Choice(e, f, g) + K[i] + Words[i];
-        unsigned int temp2 = CapitalSigma0(a) + Majority(a, b, c);
+        uint32_t temp1 = h + CapitalSigma1(e) + Choice(e, f, g) + K[i] + Words[i];
+        uint32_t temp2 = CapitalSigma0(a) + Majority(a, b, c);
         h = g;
         g = f;
         f = e;
@@ -99,11 +105,12 @@ void SHA256::Transform(unsigned int Words[64])
 
 }
 
+//Convert the message into 64 byte chunks and Transform with each chunk
 void SHA256::Update(std::string& message)
 {
     for (int chunk = 0; chunk < message.size() / 64; chunk++)
     {
-        unsigned int Words[64];
+        uint32_t Words[64];
         for (int index = 0; index < 16; index++)
         {
             Words[index] = 0;
@@ -119,6 +126,7 @@ void SHA256::Update(std::string& message)
     }
 }
 
+//Convert to string
 std::string SHA256::Digest()
 {
     std::stringstream ss(std::stringstream::in | std::stringstream::out);

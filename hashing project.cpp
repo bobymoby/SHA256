@@ -6,11 +6,9 @@
 #include <sstream>
 #include <windows.h>
 
-using namespace std;
+const std::string banner = "   _____ _    _          ___  _____   __  \n  / ____| |  | |   /\\   |__ \\| ____| / /  \n | (___ | |__| |  /  \\     ) | |__  / /_  \n  \\___ \\|  __  | / /\\ \\   / /|___ \\| '_ \\ \n  ____) | |  | |/ ____ \\ / /_ ___) | (_) |\n |_____/|_|  |_/_/    \\_\\____|____/ \\___/\n                       By Borimir Georgiev";
 
-const string banner = "   _____ _    _          ___  _____   __  \n  / ____| |  | |   /\\   |__ \\| ____| / /  \n | (___ | |__| |  /  \\     ) | |__  / /_  \n  \\___ \\|  __  | / /\\ \\   / /|___ \\| '_ \\ \n  ____) | |  | |/ ____ \\ / /_ ___) | (_) |\n |_____/|_|  |_/_/    \\_\\____|____/ \\___/";
-
-string ReadFile(string src)
+std::string ReadFile(std::string src)
 {
     std::ifstream file(src);
     std::string msg((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
@@ -18,7 +16,7 @@ string ReadFile(string src)
     return msg;
 }
 
-void WriteFile(string dest, string msg)
+void WriteFile(std::string dest, std::string msg)
 {
     std::ofstream file(dest);
     file << msg;
@@ -28,88 +26,79 @@ void WriteFile(string dest, string msg)
 inline void ClearScreen()
 {
     system("cls");
-    cout << banner << endl;
+    std::cout << banner << std::endl;
+}
+
+void SavePrompt(std::string digest)
+{
+    std::cout << "Do you want to save the hash? (y/n): ";
+    char choice = 'a';
+    while (choice != 'y' && choice != 'n')
+    {
+        std::cin >> choice;
+    }
+    if (choice == 'y')
+    {
+        std::string dest;
+        std::cout << "Enter the destination file: ";
+        std::cin.ignore();
+        std::getline(std::cin, dest);
+
+        WriteFile(dest, digest);
+    }
 }
 
 void HashStringScreen()
 {
     ClearScreen();
-    string msg;
-    cout << "Enter the string to hash: ";
-    cin.ignore();
-    getline(cin, msg);
+    std::string msg;
+    std::cout << "Enter the string to hash: ";
+    std::cin.ignore();
+    std::getline(std::cin, msg);
     SHA256 sha(msg);
-    string digest = sha.Digest();
-    cout << "Hash: " << digest << endl;
-    cout << "Do you want to save the hash? (y/n): ";
-    char choice = 'a';
-    while (choice != 'y' && choice != 'n')
-    {
-        cin >> choice;
-    }
-    if (choice == 'y')
-    {
-        string dest;
-        cout << "Enter the destination file: ";
-        cin.ignore();
-        getline(cin, dest);
-
-        WriteFile(dest, digest);
-    }
+    std::string digest = sha.Digest();
+    std::cout << "Hash: " << digest << std::endl;
+    SavePrompt(digest);
 }
 
 void HashFileString()
 {
     ClearScreen();
-    string src;
-    cout << "Enter the source file: ";
-    cin.ignore();
-    getline(cin, src);
-    string msg = ReadFile(src);
+    std::string src;
+    std::cout << "Enter the source file: ";
+    std::cin.ignore();
+    std::getline(std::cin, src);
+    std::string msg = ReadFile(src);
     SHA256 sha(msg);
-    string digest = sha.Digest();
-    cout << "Hash: " << digest << endl;
-    cout << "Do you want to save the hash? (y/n): ";
-    char choice = 'a';
-    while (choice != 'y' && choice != 'n')
-    {
-        cin >> choice;
-    }
-    if (choice == 'y')
-    {
-        string dest;
-        cout << "Enter the destination file: ";
-        cin.ignore();
-        getline(cin, dest);
-
-        WriteFile(dest, digest);
-    }
+    std::string digest = sha.Digest();
+    std::cout << "Hash: " << digest << std::endl;
+    SavePrompt(digest);
 }
 
 void ReadHashScreen()
 {
     ClearScreen();
-    string src;
-    cout << "Enter the source file: ";
-    cin.ignore();
-    getline(cin, src);
-    string msg = ReadFile(src);
-    cout << "Hash: " << msg << endl;
+    std::string src;
+    std::cout << "Enter the source file: ";
+    std::cin.ignore();
+    std::getline(std::cin, src);
+    std::string msg = ReadFile(src);
+    std::cout << "Hash: " << msg << std::endl;
 }
 
 void LandingScreen()
 {
     ClearScreen();
-    cout << "1. Hash a string" << endl;
-    cout << "2. Hash a file" << endl;
-    cout << "3. Read saved hash" << endl;
-    cout << "4. Exit" << endl;
+    std::cout << "1. Hash a string" << std::endl;
+    std::cout << "2. Hash a file" << std::endl;
+    std::cout << "3. Read saved hash" << std::endl;
+    std::cout << "4. Exit" << std::endl;
 
     int action = 0;
     while (action < 1 || action > 4)
     {
-        cout << "Enter your choice: ";
-        cin >> action;
+        std::cout << "Enter your choice: ";
+        std::cin >> action;
     }
     switch (action)
     {
@@ -127,9 +116,6 @@ void LandingScreen()
 
 int main()
 {
-    // // cout << banner << endl;
-    // SHA256 sha("as");
-    // cout << sha.Digest() << endl;
     LandingScreen();
     return 0;
 }
