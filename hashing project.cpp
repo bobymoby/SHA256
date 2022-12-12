@@ -8,8 +8,17 @@
 
 const std::string banner = "   _____ _    _          ___  _____   __  \n  / ____| |  | |   /\\   |__ \\| ____| / /  \n | (___ | |__| |  /  \\     ) | |__  / /_  \n  \\___ \\|  __  | / /\\ \\   / /|___ \\| '_ \\ \n  ____) | |  | |/ ____ \\ / /_ ___) | (_) |\n |_____/|_|  |_/_/    \\_\\____|____/ \\___/\n                       By Borimir Georgiev";
 
+void ConvertFileName(std::string& src)
+{
+    int srcLen = src.size();
+    if (srcLen < 5 || src.substr(srcLen - 4, 4) != ".txt")
+    {
+        src += ".txt";
+    }
+}
 std::string ReadFile(std::string src)
 {
+    ConvertFileName(src);
     std::ifstream file(src);
     std::string msg((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     file.close();
@@ -18,6 +27,25 @@ std::string ReadFile(std::string src)
 
 void WriteFile(std::string dest, std::string msg)
 {
+    ConvertFileName(dest);
+    std::ifstream checkFile(dest);
+    bool exists = checkFile.good();
+    checkFile.close();
+
+    if (exists)
+    {
+        std::cout << "File already exists. Do you want to overwrite it? (y/n): ";
+        char choice = 'a';
+        while (choice != 'y' && choice != 'n')
+        {
+            std::cin >> choice;
+        }
+        if (choice == 'n')
+        {
+            return;
+        }
+    }
+
     std::ofstream file(dest);
     file << msg;
     file.close();
