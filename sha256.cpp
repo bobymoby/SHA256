@@ -1,5 +1,6 @@
 #include <iostream>
 #include <string>
+#include <iomanip>
 
 using namespace std;
 
@@ -133,7 +134,7 @@ void PrintHash(unsigned int Hash[8])
 {
     for (int i = 0; i < 8; i++)
     {
-        cout << hex << (Hash[i]);
+        cout << setfill('0') << setw(8) << hex << (Hash[i]);
     }
     cout << endl;
 }
