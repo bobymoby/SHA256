@@ -16,9 +16,23 @@ void ConvertFileName(std::string& src)
         src += ".txt";
     }
 }
+
+bool DoesFileExist(std::string src)
+{
+    std::ifstream file(src);
+    bool exists = file.good();
+    file.close();
+    return exists;
+}
+
 std::string ReadFile(std::string src)
 {
     ConvertFileName(src);
+    if (!DoesFileExist(src))
+    {
+        std::cout << "File does not exist!" << std::endl;
+        return "";
+    }
     std::ifstream file(src);
     std::string msg((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
     file.close();
@@ -28,11 +42,8 @@ std::string ReadFile(std::string src)
 void WriteFile(std::string dest, std::string msg)
 {
     ConvertFileName(dest);
-    std::ifstream checkFile(dest);
-    bool exists = checkFile.good();
-    checkFile.close();
 
-    if (exists)
+    if (DoesFileExist(dest))
     {
         std::cout << "File already exists. Do you want to overwrite it? (y/n): ";
         char choice = 'a';
@@ -111,6 +122,8 @@ void ReadHashScreen()
     std::cin.ignore();
     std::getline(std::cin, src);
     std::string msg = ReadFile(src);
+    if (msg == "") return;
+
     std::cout << "Hash: " << msg << std::endl;
 }
 
