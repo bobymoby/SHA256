@@ -1,6 +1,8 @@
 #include "sha256.hpp"
 #include <sstream>
 #include <iomanip>
+
+#include <iostream>
 SHA256::SHA256(std::string message)
 {
     Pad(message);
@@ -135,4 +137,10 @@ std::string SHA256::Digest()
         ss << std::setfill('0') << std::setw(8) << std::hex << (Hash[i]);
     }
     return ss.str();
+}
+
+bool SHA256::Verify(std::string message, std::string hash)
+{
+    SHA256 sha256(message);
+    return sha256.Digest() == hash;
 }

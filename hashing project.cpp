@@ -127,16 +127,64 @@ void ReadHashScreen()
     std::cout << "Hash: " << msg << std::endl;
 }
 
+void VerifyHashScreen()
+{
+    ClearScreen();
+    std::cout << "Do you want to get the hash from a file? (y/n): ";
+    char choice = 'a';
+    std::cin.ignore();
+    while (choice != 'y' && choice != 'n')
+    {
+        std::cin >> choice;
+    }
+    std::string msg;
+    std::string hash;
+    if (choice == 'y')
+    {
+        std::string src;
+        std::cout << "Enter the source file: ";
+        std::cin.ignore();
+        std::getline(std::cin, src);
+        hash = ReadFile(src);
+        if (hash == "")
+        {
+            std::cout << "Invalid file!" << std::endl;
+            return;
+        }
+        hash = hash.substr(0, 64);
+    }
+    else
+    {
+        std::cout << "Enter the hash: ";
+        std::cin.ignore();
+        std::getline(std::cin, hash);
+    }
+
+    std::cout << "Enter the string to hash: ";
+    std::getline(std::cin, msg);
+
+    bool verified = SHA256::Verify(msg, hash);
+    if (verified)
+    {
+        std::cout << "Hash verified!" << std::endl;
+    }
+    else
+    {
+        std::cout << "Hash not verified!" << std::endl;
+    }
+}
+
 void LandingScreen()
 {
     ClearScreen();
     std::cout << "1. Hash a string" << std::endl;
     std::cout << "2. Hash a file" << std::endl;
     std::cout << "3. Read saved hash" << std::endl;
-    std::cout << "4. Exit" << std::endl;
+    std::cout << "4. Verify hash" << std::endl;
+    std::cout << "5. Exit" << std::endl;
 
     int action = 0;
-    while (action < 1 || action > 4)
+    while (action < 1 || action > 5)
     {
         std::cout << "Enter your choice: ";
         std::cin >> action;
@@ -151,6 +199,9 @@ void LandingScreen()
         break;
     case 3:
         ReadHashScreen();
+        break;
+    case 4:
+        VerifyHashScreen();
         break;
     }
 }

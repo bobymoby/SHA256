@@ -5,6 +5,7 @@ class SHA256
 public:
     SHA256(std::string message);
     std::string Digest();
+    static bool Verify(std::string message, std::string hash);
 
 private:
     uint32_t Hash[8] = {
