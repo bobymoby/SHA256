@@ -2,7 +2,6 @@
 #include <sstream>
 #include <iomanip>
 
-#include <iostream>
 SHA256::SHA256(std::string message)
 {
     Pad(message);
