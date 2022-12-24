@@ -29,4 +29,10 @@ namespace utils
     0x1f83d9ab,
     0x5be0cd19
     };
+    int StrLen(char* str);
+    bool DoesFileExist(char* filename);
+    char* ReadFile(char* filename);
+    void WriteFile(char* filename, char* data);
+    char* Substring(char* str, int start, int length);
+    bool StrComp(char* str1, char* str2);
 }

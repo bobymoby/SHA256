@@ -1,6 +1,9 @@
 #include <iostream>
 #include "utils.hpp"
 
+const int DIGEST_SIZE = 65;
+const int MAX_INPUT_SIZE = 100;
+
 void Pad(const char* message, unsigned char*& binMessage, unsigned long long& length) {
     unsigned long long msgLength = 0;
     while (message[msgLength] != '\0') msgLength++;
@@ -30,7 +33,8 @@ void Transform(unsigned int Words[64], unsigned int Hash[8])
 {
     for (int index = 16; index < 64; index++)
     {
-        Words[index] = Words[index - 16] + utils::Sigma0(Words[index - 15]) + Words[index - 7] + utils::Sigma1(Words[index - 2]);
+        Words[index] = Words[index - 16] + utils::Sigma0(Words[index - 15])
+            + Words[index - 7] + utils::Sigma1(Words[index - 2]);
     }
     unsigned int a = Hash[0];
     unsigned int b = Hash[1];
@@ -83,7 +87,7 @@ void Update(unsigned char* binMessage, unsigned long long length, unsigned int H
     }
 }
 
-void SHA256(char* message, char* digest)
+void SHA256(char* message, char digest[DIGEST_SIZE])
 {
     unsigned int Hash[8];
     for (int i = 0; i < 8; i++)
@@ -104,11 +108,12 @@ void SHA256(char* message, char* digest)
             digest[i * 8 + j] = hex[j];
         }
     }
+    digest[64] = '\0';
 }
 
 bool Verify(char* message, char* hash)
 {
-    char digest[64];
+    char digest[DIGEST_SIZE];
     SHA256(message, digest);
     for (int i = 0; i < 64; i++)
     {
@@ -121,10 +126,48 @@ bool Verify(char* message, char* hash)
 }
 int main()
 {
-    char* message = (char*)"asd";
-    char hex[65];
-    SHA256(message, hex);
-    hex[64] = '\0';
-    std::cout << hex << std::endl;
+    std::cout << "Do you wish to:" << std::endl;
+    std::cout << "1. Hash a file" << std::endl;
+    std::cout << "2. Verify hash" << std::endl;
+    int choice = 0;
+    std::cin >> choice;
+    std::cin.ignore();
+    if (choice < 1 || choice > 2)
+    {
+        std::cout << "Invalid choice" << std::endl;
+    }
+    if (choice == 1)
+    {
+        std::cout << "Enter the path of the source file:" << std::endl;
+        char source[MAX_INPUT_SIZE];
+        std::cin.getline(source, MAX_INPUT_SIZE);
+        char hash[DIGEST_SIZE];
+        char* message = utils::ReadFile(source);
+        std::cout << "Message to be hashed: " << message << std::endl;
+        SHA256(message, hash);
+        std::cout << "Hashed message: " << hash << std::endl;
+        std::cout << "Enter the path of the destination file:" << std::endl;
+        char destination[MAX_INPUT_SIZE];
+        std::cin.getline(destination, MAX_INPUT_SIZE);
+        utils::WriteFile(destination, hash);
+    }
+    if (choice == 2)
+    {
+        std::cout << "Enter the path of the hash file:" << std::endl;
+        char source[MAX_INPUT_SIZE];
+        std::cin.getline(source, MAX_INPUT_SIZE);
+        char* hash = utils::ReadFile(source);
+        std::cout << "Enter the original message:" << std::endl;
+        char message[MAX_INPUT_SIZE];
+        std::cin.getline(message, MAX_INPUT_SIZE);
+        if (Verify(message, hash))
+        {
+            std::cout << "The hash is valid" << std::endl;
+        }
+        else
+        {
+            std::cout << "The hash is invalid" << std::endl;
+        }
+    }
     return 0;
 }
