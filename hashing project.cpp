@@ -1,213 +1,173 @@
 #include <iostream>
-#include "sha256.hpp"
-#include <string>
-#include <iomanip>
-#include <fstream>
-#include <sstream>
-#include <windows.h>
+#include "utils.hpp"
 
-const std::string banner = "   _____ _    _          ___  _____   __  \n  / ____| |  | |   /\\   |__ \\| ____| / /  \n | (___ | |__| |  /  \\     ) | |__  / /_  \n  \\___ \\|  __  | / /\\ \\   / /|___ \\| '_ \\ \n  ____) | |  | |/ ____ \\ / /_ ___) | (_) |\n |_____/|_|  |_/_/    \\_\\____|____/ \\___/\n                       By Borimir Georgiev";
+const int DIGEST_SIZE = 65;
+const int MAX_INPUT_SIZE = 100;
 
-void ConvertFileName(std::string& src)
-{
-    int srcLen = src.size();
-    if (srcLen < 5 || src.substr(srcLen - 4, 4) != ".txt")
+void Pad(const char* message, unsigned char*& binMessage, unsigned long long& length) {
+    unsigned long long msgLength = 0;
+    while (message[msgLength] != '\0') msgLength++;
+    msgLength *= 8;
+    length = ((msgLength + 65) / 512 + 1) * 64;
+    int index = 0;
+    binMessage = new unsigned char[length];
+    while (message[index] != '\0')
     {
-        src += ".txt";
+        binMessage[index] = message[index];
+        index++;
+    }
+    binMessage[index] = (unsigned char)128;
+    index++;
+    while (index % 64 != 56)
+    {
+        binMessage[index] = (unsigned char)0;
+        index++;
+    }
+    for (int i = 0; i < 8; i++)
+    {
+        binMessage[index + i] = (unsigned char)(msgLength >> (8 * (7 - i)));
     }
 }
 
-bool DoesFileExist(std::string src)
+void Transform(unsigned int Words[64], unsigned int Hash[8])
 {
-    std::ifstream file(src);
-    bool exists = file.good();
-    file.close();
-    return exists;
-}
-
-std::string ReadFile(std::string src)
-{
-    ConvertFileName(src);
-    if (!DoesFileExist(src))
+    for (int index = 16; index < 64; index++)
     {
-        std::cout << "File does not exist!" << std::endl;
-        return "";
+        Words[index] = Words[index - 16] + utils::Sigma0(Words[index - 15])
+            + Words[index - 7] + utils::Sigma1(Words[index - 2]);
     }
-    std::ifstream file(src);
-    std::string msg((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    file.close();
-    return msg;
+    unsigned int a = Hash[0];
+    unsigned int b = Hash[1];
+    unsigned int c = Hash[2];
+    unsigned int d = Hash[3];
+    unsigned int e = Hash[4];
+    unsigned int f = Hash[5];
+    unsigned int g = Hash[6];
+    unsigned int h = Hash[7];
+
+    for (int i = 0; i < 64; i++)
+    {
+        unsigned int temp1 = h + utils::CapitalSigma1(e) + utils::Choice(e, f, g) + utils::K[i] + Words[i];
+        unsigned int temp2 = utils::CapitalSigma0(a) + utils::Majority(a, b, c);
+        h = g;
+        g = f;
+        f = e;
+        e = d + temp1;
+        d = c;
+        c = b;
+        b = a;
+        a = temp1 + temp2;
+    }
+
+    Hash[0] += a;
+    Hash[1] += b;
+    Hash[2] += c;
+    Hash[3] += d;
+    Hash[4] += e;
+    Hash[5] += f;
+    Hash[6] += g;
+    Hash[7] += h;
+
 }
 
-void WriteFile(std::string dest, std::string msg)
+void Update(unsigned char* binMessage, unsigned long long length, unsigned int Hash[8])
 {
-    ConvertFileName(dest);
-
-    if (DoesFileExist(dest))
+    for (int chunk = 0; chunk < length / 64; chunk++)
     {
-        std::cout << "File already exists. Do you want to overwrite it? (y/n): ";
-        char choice = 'a';
-        while (choice != 'y' && choice != 'n')
+        unsigned int Words[64];
+        for (int index = 0; index < 16; index++)
         {
-            std::cin >> choice;
+            Words[index] = 0;
+
+            for (int j = 0; j < 4; j++) {
+                Words[index] = (Words[index] << 8) + binMessage[chunk * 64 + index * 4 + j];
+            }
         }
-        if (choice == 'n')
+        Transform(Words, Hash);
+    }
+}
+
+void SHA256(char* message, char digest[DIGEST_SIZE])
+{
+    unsigned int Hash[8];
+    for (int i = 0; i < 8; i++)
+    {
+        Hash[i] = utils::Hash[i];
+    }
+    unsigned char* binMessage;
+    unsigned long long length;
+    Pad(message, binMessage, length);
+    Update(binMessage, length, Hash);
+
+    for (int i = 0; i < 8; i++)
+    {
+        char hex[8];
+        utils::DecToHex(Hash[i], hex);
+        for (int j = 0; j < 8; j++)
         {
-            return;
+            digest[i * 8 + j] = hex[j];
         }
     }
-
-    std::ofstream file(dest);
-    file << msg;
-    file.close();
+    digest[64] = '\0';
 }
 
-inline void ClearScreen()
+bool Verify(char* message, char* hash)
 {
-    system("cls");
-    std::cout << banner << std::endl;
-}
-
-void SavePrompt(std::string digest)
-{
-    std::cout << "Do you want to save the hash? (y/n): ";
-    char choice = 'a';
-    while (choice != 'y' && choice != 'n')
+    char digest[DIGEST_SIZE];
+    SHA256(message, digest);
+    for (int i = 0; i < 64; i++)
     {
-        std::cin >> choice;
-    }
-    if (choice == 'y')
-    {
-        std::string dest;
-        std::cout << "Enter the destination file: ";
-        std::cin.ignore();
-        std::getline(std::cin, dest);
-
-        WriteFile(dest, digest);
-    }
-}
-
-void HashStringScreen()
-{
-    ClearScreen();
-    std::string msg;
-    std::cout << "Enter the string to hash: ";
-    std::cin.ignore();
-    std::getline(std::cin, msg);
-    SHA256 sha(msg);
-    std::string digest = sha.Digest();
-    std::cout << "Hash: " << digest << std::endl;
-    SavePrompt(digest);
-}
-
-void HashFileString()
-{
-    ClearScreen();
-    std::string src;
-    std::cout << "Enter the source file: ";
-    std::cin.ignore();
-    std::getline(std::cin, src);
-    std::string msg = ReadFile(src);
-    SHA256 sha(msg);
-    std::string digest = sha.Digest();
-    std::cout << "Hash: " << digest << std::endl;
-    SavePrompt(digest);
-}
-
-void ReadHashScreen()
-{
-    ClearScreen();
-    std::string src;
-    std::cout << "Enter the source file: ";
-    std::cin.ignore();
-    std::getline(std::cin, src);
-    std::string msg = ReadFile(src);
-    if (msg == "") return;
-
-    std::cout << "Hash: " << msg << std::endl;
-}
-
-void VerifyHashScreen()
-{
-    ClearScreen();
-    std::cout << "Do you want to get the hash from a file? (y/n): ";
-    char choice = 'a';
-    std::cin.ignore();
-    while (choice != 'y' && choice != 'n')
-    {
-        std::cin >> choice;
-    }
-    std::string msg;
-    std::string hash;
-    if (choice == 'y')
-    {
-        std::string src;
-        std::cout << "Enter the source file: ";
-        std::cin.ignore();
-        std::getline(std::cin, src);
-        hash = ReadFile(src);
-        if (hash == "")
+        if (digest[i] != hash[i])
         {
-            std::cout << "Invalid file!" << std::endl;
-            return;
+            return false;
         }
-        hash = hash.substr(0, 64);
     }
-    else
-    {
-        std::cout << "Enter the hash: ";
-        std::cin.ignore();
-        std::getline(std::cin, hash);
-    }
-
-    std::cout << "Enter the string to hash: ";
-    std::getline(std::cin, msg);
-
-    bool verified = SHA256::Verify(msg, hash);
-    if (verified)
-    {
-        std::cout << "Hash verified!" << std::endl;
-    }
-    else
-    {
-        std::cout << "Hash not verified!" << std::endl;
-    }
+    return true;
 }
-
-void LandingScreen()
-{
-    ClearScreen();
-    std::cout << "1. Hash a string" << std::endl;
-    std::cout << "2. Hash a file" << std::endl;
-    std::cout << "3. Read saved hash" << std::endl;
-    std::cout << "4. Verify hash" << std::endl;
-    std::cout << "5. Exit" << std::endl;
-
-    int action = 0;
-    while (action < 1 || action > 5)
-    {
-        std::cout << "Enter your choice: ";
-        std::cin >> action;
-    }
-    switch (action)
-    {
-    case 1:
-        HashStringScreen();
-        break;
-    case 2:
-        HashFileString();
-        break;
-    case 3:
-        ReadHashScreen();
-        break;
-    case 4:
-        VerifyHashScreen();
-        break;
-    }
-}
-
 int main()
 {
-    LandingScreen();
+    std::cout << "Do you wish to:" << std::endl;
+    std::cout << "1. Hash a file" << std::endl;
+    std::cout << "2. Verify hash" << std::endl;
+    int choice = 0;
+    std::cin >> choice;
+    std::cin.ignore();
+    if (choice < 1 || choice > 2)
+    {
+        std::cout << "Invalid choice" << std::endl;
+    }
+    if (choice == 1)
+    {
+        std::cout << "Enter the path of the source file:" << std::endl;
+        char source[MAX_INPUT_SIZE];
+        std::cin.getline(source, MAX_INPUT_SIZE);
+        char hash[DIGEST_SIZE];
+        char* message = utils::ReadFile(source);
+        std::cout << "Message to be hashed: " << message << std::endl;
+        SHA256(message, hash);
+        std::cout << "Hashed message: " << hash << std::endl;
+        std::cout << "Enter the path of the destination file:" << std::endl;
+        char destination[MAX_INPUT_SIZE];
+        std::cin.getline(destination, MAX_INPUT_SIZE);
+        utils::WriteFile(destination, hash);
+    }
+    if (choice == 2)
+    {
+        std::cout << "Enter the path of the hash file:" << std::endl;
+        char source[MAX_INPUT_SIZE];
+        std::cin.getline(source, MAX_INPUT_SIZE);
+        char* hash = utils::ReadFile(source);
+        std::cout << "Enter the original message:" << std::endl;
+        char message[MAX_INPUT_SIZE];
+        std::cin.getline(message, MAX_INPUT_SIZE);
+        if (Verify(message, hash))
+        {
+            std::cout << "The hash is valid" << std::endl;
+        }
+        else
+        {
+            std::cout << "The hash is invalid" << std::endl;
+        }
+    }
     return 0;
 }
