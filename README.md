@@ -3,7 +3,7 @@
 ## How To Build
 
 ```bash
-g++ *.cpp -o <name>.o
+g++ *.cpp -o <name>
 ```
 
 ## How To Run
@@ -11,11 +11,11 @@ g++ *.cpp -o <name>.o
 ### Windows
 
 ```bash
-<name>.o
+<name>
 ```
 
 ### Linux
 
 ```bash
-./<name>.o
+./<name>
 ```
