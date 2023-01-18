@@ -16,8 +16,7 @@ void utils::DecToHex(unsigned int dec, char hex[8])
     int index = 0;
     while (dec > 0)
     {
-        int temp = 0;
-        temp = dec % 16;
+        int temp = dec % 16;
         if (temp < 10)
         {
             hex[7 - index] = temp + '0';
