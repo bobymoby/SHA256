@@ -40,36 +40,46 @@ unsigned int sha256::Majority(unsigned int hash1, unsigned int hash2, unsigned i
 //The sha256 algorithm requires the messenge to be padded to a multiple of 512 bits
 //The padding is done by adding a 1 bit, followed by as many 0 bits as necessary
 //The message length is appended to the end of the message in 64 bits
-unsigned char* sha256::Pad(char* message, unsigned int& length) {
+unsigned char* sha256::Pad(char* message, unsigned int& length)
+{
 
     unsigned int msgLength = utils::StrLen(message);
-    unsigned long long binLength = msgLength * 8;
-    length = ((binLength + 65) / 512 + 1) * 64;
+    unsigned long long bitLength = msgLength * 8;
 
-    unsigned char* binMessage = new unsigned char[length];
+    length = utils::CeilDiv(bitLength + 64 + 8, 512) * 64;
+    //bitLength + 64(for the length) + 8(for the 1 bit)
+    //512 - chunk size
+    //*64 - convert to bytes 
+
+    unsigned char* paddedMessage = new unsigned char[length];
     int index = 0;
 
+    //Copy the message into the padded message
     while (index < msgLength)
     {
-        binMessage[index] = (unsigned char)message[index];
+        paddedMessage[index] = (unsigned char)message[index];
         index++;
     }
-    binMessage[index] = (unsigned char)128; //10000000 in binary
+
+    //Add the 1 bit
+    paddedMessage[index] = (unsigned char)128; //10000000 in binary
     index++;
 
+    //Add the 0 bits
     while (index % 64 != 56)
     {
-        binMessage[index] = (unsigned char)0;
+        paddedMessage[index] = (unsigned char)0;
         index++;
     }
 
+    //Add the length
     for (int i = 0; i < 8; i++)
     {
-        binMessage[index + i] = (unsigned char)(binLength >> (8 * (7 - i)));
+        paddedMessage[index + i] = (unsigned char)(bitLength >> (8 * (7 - i)));
     }
 
 
-    return binMessage;
+    return paddedMessage;
 }
 
 //Using the sha256 algorithm update the hash with a 64 byte chunk of the message
@@ -91,10 +101,18 @@ void sha256::Update(unsigned int Words[64], unsigned int Hash[8])
     unsigned int g = Hash[6];
     unsigned int h = Hash[7];
 
+    //Main hashing loop
     for (int i = 0; i < 64; i++)
     {
-        unsigned int temp1 = h + sha256::CapitalSigma1(e) + sha256::Choice(e, f, g) + sha256::K[i] + Words[i];
-        unsigned int temp2 = sha256::CapitalSigma0(a) + sha256::Majority(a, b, c);
+        unsigned int temp1, temp2;
+        temp1 = h;
+        temp1 += sha256::CapitalSigma1(e);
+        temp1 += sha256::Choice(e, f, g);
+        temp1 += sha256::K[i];
+        temp1 += Words[i];
+
+        temp2 = sha256::CapitalSigma0(a) + sha256::Majority(a, b, c);
+
         h = g;
         g = f;
         f = e;
@@ -105,6 +123,7 @@ void sha256::Update(unsigned int Words[64], unsigned int Hash[8])
         a = temp1 + temp2;
     }
 
+    //Update the current hash values
     Hash[0] += a;
     Hash[1] += b;
     Hash[2] += c;
@@ -117,17 +136,21 @@ void sha256::Update(unsigned int Words[64], unsigned int Hash[8])
 }
 
 //Transform the padded message into 64 byte chunks and update the hash with each chunk
-void sha256::Transform(unsigned char* binMessage, unsigned int length, unsigned int Hash[8])
+//An array with size of 64 is used to store the Words for each chunk
+//A Word is 4 bytes long and there are 16 Words in each chunk
+//The rest of the Words are calculated from the previous Words using the sha256 algorithm
+void sha256::Transform(unsigned char* paddedMessage, unsigned int length, unsigned int Hash[8])
 {
     for (int chunk = 0; chunk < length / 64; chunk++)
     {
         unsigned int Words[64];
-        for (int index = 0; index < 16; index++)
+        for (int wordIndex = 0; wordIndex < 16; wordIndex++)
         {
-            Words[index] = 0;
+            Words[wordIndex] = 0;
 
-            for (int j = 0; j < 4; j++) {
-                Words[index] = (Words[index] << 8) + binMessage[chunk * 64 + index * 4 + j];
+            for (int j = 0; j < 4; j++)
+            {
+                Words[wordIndex] = (Words[wordIndex] << 8) + paddedMessage[chunk * 64 + wordIndex * 4 + j];
             }
         }
         sha256::Update(Words, Hash);
@@ -137,15 +160,16 @@ void sha256::Transform(unsigned char* binMessage, unsigned int length, unsigned 
 void sha256::SHA256(char* message, char digest[DIGEST_SIZE])
 {
     unsigned int Hash[8];
+    //Set the initial hash values
     for (int i = 0; i < 8; i++)
     {
         Hash[i] = sha256::Hash[i];
     }
 
-    unsigned int length;
-    unsigned char* paddedMessage = sha256::Pad(message, length);
+    unsigned int paddedLength;
+    unsigned char* paddedMessage = sha256::Pad(message, paddedLength);
 
-    sha256::Transform(paddedMessage, length, Hash);
+    sha256::Transform(paddedMessage, paddedLength, Hash);
 
     for (int i = 0; i < 8; i++)
     {
@@ -166,13 +190,5 @@ bool sha256::Verify(char* message, char* hash)
     char digest[DIGEST_SIZE];
     sha256::SHA256(message, digest);
 
-    for (int i = 0; i < 64; i++)
-    {
-        if (digest[i] != hash[i])
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return utils::StrComp(digest, hash);
 }

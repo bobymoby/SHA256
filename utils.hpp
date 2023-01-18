@@ -2,6 +2,7 @@
 namespace utils
 {
     void DecToHex(unsigned int num, char hex[8]);
+    int CeilDiv(int num, int den);
 
     int StrLen(char* str);
     char* Substring(char* str, int start, int length);

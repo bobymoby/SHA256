@@ -12,6 +12,7 @@ void SetHexToZero(char hex[8])
 void utils::DecToHex(unsigned int dec, char hex[8])
 {
     SetHexToZero(hex);
+
     int index = 0;
     while (dec > 0)
     {
@@ -28,6 +29,11 @@ void utils::DecToHex(unsigned int dec, char hex[8])
         index++;
         dec = dec / 16;
     }
+}
+
+int utils::CeilDiv(int num, int den)
+{
+    return num / den + (num % den != 0);
 }
 
 int utils::StrLen(char* str)
@@ -56,11 +62,13 @@ bool utils::StrComp(char* str1, char* str2)
     int len1 = utils::StrLen(str1);
     int len2 = utils::StrLen(str2);
 
+    // If the lengths are not equal, the strings are not equal
     if (len1 != len2)
     {
         return false;
     }
 
+    // Compares every character in the strings
     for (int i = 0; i < len1; i++)
     {
         if (str1[i] != str2[i])
@@ -72,6 +80,7 @@ bool utils::StrComp(char* str1, char* str2)
     return true;
 }
 
+// Adds .txt to the end of the filename if it does not already have it
 char* ConvertFileName(char* filename)
 {
     int len = utils::StrLen(filename);
@@ -121,28 +130,30 @@ bool utils::DoesFileExist(char* filename)
 
     file.close();
     delete[] newfilename;
+
     return isGood;
 }
 
 char* utils::ReadFile(char* filename)
 {
-    char* newfilename = ConvertFileName(filename);
+    char* convertedFileName = ConvertFileName(filename);
 
-    if (!utils::DoesFileExist(newfilename))
+    if (!utils::DoesFileExist(convertedFileName))
     {
+        delete[] convertedFileName;
         return nullptr;
     }
 
-    std::ifstream file(newfilename);
+    std::ifstream file(convertedFileName);
 
-    delete[] newfilename;
+    delete[] convertedFileName;
 
-    file.seekg(0, std::ios::end);
-    int length = file.tellg();
+    file.seekg(0, std::ios::end); // Moves the 'cursor' to the end of the file
+    int length = file.tellg(); // Gets the position of the 'cursor'
 
     char* result = new char[length + 1];
 
-    file.seekg(0, std::ios::beg);
+    file.seekg(0, std::ios::beg); // Moves the 'cursor' to the beginning of the file
     file.read(result, length);
 
     result[length] = '\0';
